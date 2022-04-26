@@ -1,8 +1,17 @@
-# we will use openjdk 8 with alpine as it is a very small linux distro
-FROM openjdk:7-jre-alpine3.9
+# the first stage of our build will use a maven 3.6.1 parent image
+FROM maven:3.8.5-jdk-11-alpine AS MAVEN_BUILD
 
-# copy the packaged jar file into our docker image
-COPY target/demo-0.0.1-SNAPSHOT.jar /demo.jar
+# copy the pom and src code to the container
+COPY ./ ./
+
+# package our application code
+RUN mvn clean package
+
+# the second stage of our build will use open jdk 8 on alpine 3.9
+FROM openjdk:11-jre-alpine3.9
+
+# copy only the artifacts we need from the first stage and discard the rest
+COPY --from=MAVEN_BUILD /docker-multi-stage-build-demo/target/demo-0.0.1-SNAPSHOT.jar /demo.jar
 
 # set the startup command to execute the jar
 CMD ["java", "-jar", "/demo.jar"]
